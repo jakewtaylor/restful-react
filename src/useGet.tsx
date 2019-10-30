@@ -1,12 +1,12 @@
 import { Cancelable, DebounceSettings } from "lodash";
 import debounce from "lodash/debounce";
 import merge from "lodash/merge";
-import qs from "qs";
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import url from "url";
 
 import { Context, RestfulReactProviderProps } from "./Context";
 import { GetState } from "./Get";
+import { EncodeQueryParamsFunction } from "./types";
 import { processResponse } from "./util/processResponse";
 import { useDeepCompareEffect } from "./util/useDeepCompareEffect";
 
@@ -24,6 +24,10 @@ export interface UseGetProps<TData, TQueryParams> {
    * Query parameters
    */
   queryParams?: TQueryParams;
+  /**
+   * A function to encode the queryParams to a string.
+   */
+  encodeQueryParams?: EncodeQueryParamsFunction<TQueryParams>;
   /**
    * Don't send the error to the Provider
    */
@@ -56,13 +60,18 @@ export interface UseGetProps<TData, TQueryParams> {
     | number;
 }
 
-export function resolvePath<TQueryParams>(base: string, path: string, queryParams: TQueryParams) {
+export function resolvePath<TQueryParams>(
+  base: string,
+  path: string,
+  queryParams: TQueryParams,
+  encodeQueryParams: EncodeQueryParamsFunction<TQueryParams>,
+) {
   const appendedBase = base.endsWith("/") ? base : `${base}/`;
   const trimmedPath = path.startsWith("/") ? path.slice(1) : path;
 
   return url.resolve(
     appendedBase,
-    Object.keys(queryParams).length ? `${trimmedPath}?${qs.stringify(queryParams)}` : trimmedPath,
+    Object.keys(queryParams).length ? `${trimmedPath}?${encodeQueryParams(queryParams)}` : trimmedPath,
   );
 }
 
@@ -73,7 +82,7 @@ async function _fetchData<TData, TError, TQueryParams>(
   context: RestfulReactProviderProps,
   abortController: React.MutableRefObject<AbortController>,
 ) {
-  const { base = context.base, path, resolve = (d: any) => d as TData, queryParams = {} } = props;
+  const { base = context.base, path, resolve = (d: any) => d as TData, queryParams = {}, encodeQueryParams } = props;
 
   if (state.loading) {
     // Abort previous requests
@@ -93,7 +102,7 @@ async function _fetchData<TData, TError, TQueryParams>(
     (typeof context.requestOptions === "function" ? context.requestOptions() : context.requestOptions) || {};
 
   const request = new Request(
-    resolvePath(base, path, { ...context.queryParams, ...queryParams }),
+    resolvePath(base, path, { ...context.queryParams, ...queryParams }, encodeQueryParams || context.encodeQueryParams),
     merge({}, contextRequestOptions, requestOptions, { signal }),
   );
 
@@ -206,10 +215,15 @@ export function useGet<TData = any, TError = any, TQueryParams = { [key: string]
 
   return {
     ...state,
-    absolutePath: resolvePath(props.base || context.base, props.path, {
-      ...context.queryParams,
-      ...props.queryParams,
-    }),
+    absolutePath: resolvePath(
+      props.base || context.base,
+      props.path,
+      {
+        ...context.queryParams,
+        ...props.queryParams,
+      },
+      props.encodeQueryParams || context.encodeQueryParams,
+    ),
     cancel: () => {
       setState({
         ...state,

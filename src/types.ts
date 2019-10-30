@@ -10,3 +10,5 @@ export interface GetDataError<TError> {
   message: string;
   data: TError | string;
 }
+
+export type EncodeQueryParamsFunction<TQueryParams = { [key: string]: any }> = (data: TQueryParams) => string;

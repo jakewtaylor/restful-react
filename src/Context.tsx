@@ -1,6 +1,8 @@
 import noop from "lodash/noop";
+import qs from "qs";
 import * as React from "react";
 import { ResolveFunction } from "./Get";
+import { EncodeQueryParamsFunction } from "./types";
 
 export interface RestfulReactProviderProps<T = any> {
   /** The backend URL where the RESTful resources live. */
@@ -32,6 +34,10 @@ export interface RestfulReactProviderProps<T = any> {
    * **Warning:** it's probably not a good idea to put API keys here. Consider headers instead.
    */
   queryParams?: { [key: string]: any };
+  /**
+   * A function to encode the queryParams object for the url.
+   */
+  encodeQueryParams?: EncodeQueryParamsFunction;
 }
 
 export const Context = React.createContext<Required<RestfulReactProviderProps>>({
@@ -41,6 +47,7 @@ export const Context = React.createContext<Required<RestfulReactProviderProps>>(
   requestOptions: {},
   onError: noop,
   queryParams: {},
+  encodeQueryParams: qs.stringify,
 });
 
 export interface InjectedProps {
@@ -58,6 +65,7 @@ export default class RestfulReactProvider<T> extends React.Component<RestfulReac
           requestOptions: {},
           parentPath: "",
           queryParams: value.queryParams || {},
+          encodeQueryParams: value.encodeQueryParams || qs.stringify,
           ...value,
         }}
       >

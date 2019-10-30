@@ -5,6 +5,7 @@ import * as qs from "qs";
 import * as React from "react";
 
 import RestfulReactProvider, { InjectedProps, RestfulReactConsumer, RestfulReactProviderProps } from "./Context";
+import { EncodeQueryParamsFunction } from "./types";
 import { composePath, composeUrl } from "./util/composeUrl";
 import { processResponse } from "./util/processResponse";
 import { resolveData } from "./util/resolveData";
@@ -82,6 +83,10 @@ export interface GetProps<TData, TError, TQueryParams> {
    * Query parameters
    */
   queryParams?: TQueryParams;
+  /**
+   * Function to encode queryParams into a string.
+   */
+  encodeQueryParams?: EncodeQueryParamsFunction<TQueryParams>;
   /**
    * Don't send the error to the Provider
    */
