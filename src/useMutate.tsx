@@ -11,6 +11,12 @@ export interface UseMutateProps<TData, TQueryParams, TRequestBody>
    * What HTTP verb are we using?
    */
   verb: "POST" | "PUT" | "PATCH" | "DELETE";
+
+  /**
+   * Flag to disable Content-Type guessing.
+   */
+  guessContentType?: boolean;
+
   /**
    * Callback called after the mutation is done.
    *
@@ -51,7 +57,7 @@ export function useMutate<
     typeof arguments[0] === "object" ? arguments[0] : { ...arguments[2], path: arguments[1], verb: arguments[0] };
 
   const context = useContext(Context);
-  const { verb, base = context.base, path, queryParams = {}, resolve } = props;
+  const { verb, base = context.base, path, queryParams = {}, resolve, guessContentType = true } = props;
   const isDelete = verb === "DELETE";
 
   const [state, setState] = useState<MutateState<TData, TError>>({
@@ -85,10 +91,12 @@ export function useMutate<
 
       const options: RequestInit = {
         method: verb,
-        headers: {
-          "content-type": typeof body === "object" ? "application/json" : "text/plain",
-        },
+        headers: {},
       };
+
+      if (guessContentType) {
+        options.headers["content-type"] = typeof body === "object" ? "application/json" : "text/plain";
+      }
 
       if (!isDelete) {
         options.body = typeof body === "object" ? JSON.stringify(body) : ((body as unknown) as string);
